@@ -300,7 +300,7 @@ def localized_occupied_reply(language: str, alternatives: list[str]) -> str:
 async def check_calendar_availability(start_dt: datetime, duration_minutes: int) -> bool:
     """
     Check Google Calendar availability.
-    If Google Calendar is not configured yet, fallback to dummy testing logic.
+    If Google Calendar is not configured, fallback to dummy testing logic.
     """
 
     end_dt = start_dt + timedelta(minutes=duration_minutes)
@@ -342,7 +342,7 @@ async def create_calendar_booking(
 ) -> str:
     """
     Create booking event in Google Calendar.
-    If Google Calendar is not configured yet, fallback to dummy logging.
+    If Google Calendar is not configured, fallback to dummy logging.
     """
 
     end_dt = start_dt + timedelta(minutes=duration_minutes)
