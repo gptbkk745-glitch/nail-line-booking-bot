@@ -17,6 +17,7 @@ from linebot.v3.messaging import (
     ApiClient,
     Configuration,
     MessagingApi,
+    PushMessageRequest,
     ReplyMessageRequest,
     TextMessage,
 )
@@ -556,11 +557,25 @@ async def line_webhook(request: Request):
             logger.exception("Error processing message: %s", exc)
             reply_text = "Sorry, something went wrong. Please try again."
 
-        line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_text)],
+        try:
+            line_bot_api.reply_message(
+                reply_message_request=ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply_text)],
+                )
             )
-        )
+        except Exception as exc:
+            logger.exception("LINE reply_message failed, trying push_message fallback: %s", exc)
+
+            if line_user_id != "unknown":
+                try:
+                    line_bot_api.push_message(
+                        push_message_request=PushMessageRequest(
+                            to=line_user_id,
+                            messages=[TextMessage(text=reply_text)],
+                        )
+                    )
+                except Exception as push_exc:
+                    logger.exception("LINE push_message fallback also failed: %s", push_exc)
 
     return {"status": "ok"}
