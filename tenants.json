@@ -1,0 +1,201 @@
+{
+  "nail-salon": {
+    "business_name": "Chinatown Nail Bookings",
+    "business_type": "nail stall / nail salon",
+    "location": "Chinatown, Chiang Mai, Thailand",
+    "timezone": "Asia/Bangkok",
+    "working_hours": {
+      "start": "10:00",
+      "end": "20:00"
+    },
+    "languages": [
+      "th",
+      "en",
+      "zh"
+    ],
+    "line_channel_secret_env": "LINE_CHANNEL_SECRET",
+    "line_channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
+    "google_calendar_id_env": "GOOGLE_CALENDAR_ID",
+    "google_service_account_b64_env": "GOOGLE_SERVICE_ACCOUNT_B64",
+    "google_service_account_json_env": "GOOGLE_SERVICE_ACCOUNT_JSON",
+    "services": {
+      "gel_polish": {
+        "display_name": "Gel Polish",
+        "price_thb": 200,
+        "duration_minutes": 60,
+        "bookable": true
+      },
+      "acrylic": {
+        "display_name": "Acrylic Nails",
+        "price_thb": 500,
+        "duration_minutes": 120,
+        "bookable": true
+      },
+      "manicure": {
+        "display_name": "Manicure",
+        "price_thb": 150,
+        "duration_minutes": 45,
+        "bookable": true
+      }
+    },
+    "business_rules": [
+      "The business has only 1 seat, so only one appointment can happen at a time.",
+      "Customer name and phone are optional.",
+      "Do not ask for name or phone before checking availability."
+    ],
+    "faqs": [
+      {
+        "keywords": [
+          "payment",
+          "pay",
+          "cash",
+          "card"
+        ],
+        "answer_en": "We accept cash payment. Card or QR payment depends on availability at the shop.",
+        "answer_th": "รับชำระด้วยเงินสดค่ะ การชำระด้วยบัตรหรือ QR ขึ้นอยู่กับความพร้อมของร้าน",
+        "answer_zh": "我们接受现金付款。是否支持刷卡或二维码付款取决于店内情况。"
+      },
+      {
+        "keywords": [
+          "walk in",
+          "walk-in",
+          "without booking"
+        ],
+        "answer_en": "Walk-ins are welcome if there is an available slot, but booking in advance is recommended.",
+        "answer_th": "สามารถ walk-in ได้ถ้ามีคิวว่าง แต่แนะนำให้จองล่วงหน้าค่ะ",
+        "answer_zh": "如果有空位，可以直接到店；但建议提前预约。"
+      }
+    ]
+  },
+  "library": {
+    "business_name": "Library Reception Desk",
+    "business_type": "library receptionist",
+    "location": "Client library location",
+    "timezone": "Asia/Bangkok",
+    "working_hours": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "languages": [
+      "th",
+      "en",
+      "zh"
+    ],
+    "line_channel_secret_env": "LINE_CHANNEL_SECRET",
+    "line_channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
+    "google_calendar_id_env": "LIBRARY_GOOGLE_CALENDAR_ID",
+    "google_service_account_b64_env": "GOOGLE_SERVICE_ACCOUNT_B64",
+    "google_service_account_json_env": "GOOGLE_SERVICE_ACCOUNT_JSON",
+    "services": {
+      "study_room": {
+        "display_name": "Study Room Booking",
+        "price_thb": null,
+        "duration_minutes": 60,
+        "bookable": true
+      },
+      "meeting_room": {
+        "display_name": "Meeting Room Booking",
+        "price_thb": null,
+        "duration_minutes": 120,
+        "bookable": true
+      },
+      "librarian_help": {
+        "display_name": "Ask Librarian Appointment",
+        "price_thb": null,
+        "duration_minutes": 30,
+        "bookable": true
+      },
+      "computer_use": {
+        "display_name": "Computer Use Slot",
+        "price_thb": null,
+        "duration_minutes": 60,
+        "bookable": true
+      }
+    },
+    "faqs": [
+      {
+        "keywords": [
+          "open",
+          "opening",
+          "hours",
+          "close",
+          "closing",
+          "time"
+        ],
+        "answer_en": "The library is open daily from 09:00 to 18:00.",
+        "answer_th": "ห้องสมุดเปิดทุกวัน เวลา 09:00–18:00 ค่ะ",
+        "answer_zh": "图书馆每天 09:00–18:00 开放。"
+      },
+      {
+        "keywords": [
+          "membership",
+          "member",
+          "library card",
+          "register"
+        ],
+        "answer_en": "You can apply for library membership at the reception desk. Please bring your ID card or passport.",
+        "answer_th": "สามารถสมัครสมาชิกห้องสมุดได้ที่เคาน์เตอร์ประชาสัมพันธ์ กรุณานำบัตรประชาชนหรือพาสปอร์ตมาด้วยค่ะ",
+        "answer_zh": "您可以在前台申请图书馆会员。请携带身份证或护照。"
+      },
+      {
+        "keywords": [
+          "borrow",
+          "borrowing",
+          "loan",
+          "how many books"
+        ],
+        "answer_en": "Members can borrow books according to the library policy. Please check with the reception desk for the exact borrowing limit.",
+        "answer_th": "สมาชิกสามารถยืมหนังสือได้ตามนโยบายของห้องสมุด กรุณาติดต่อเคาน์เตอร์เพื่อทราบจำนวนที่ยืมได้ค่ะ",
+        "answer_zh": "会员可根据图书馆规定借书。具体借阅数量请咨询前台。"
+      },
+      {
+        "keywords": [
+          "late fee",
+          "fine",
+          "overdue"
+        ],
+        "answer_en": "Late return fees depend on the library policy. Please contact the reception desk for the exact fee.",
+        "answer_th": "ค่าปรับคืนหนังสือล่าช้าขึ้นอยู่กับนโยบายของห้องสมุด กรุณาติดต่อเคาน์เตอร์ค่ะ",
+        "answer_zh": "逾期费用取决于图书馆规定。请联系前台确认具体费用。"
+      },
+      {
+        "keywords": [
+          "wifi",
+          "internet"
+        ],
+        "answer_en": "Wi-Fi is available for library visitors. Please ask the reception desk for the password.",
+        "answer_th": "มี Wi-Fi สำหรับผู้ใช้บริการค่ะ กรุณาสอบถามรหัสผ่านที่เคาน์เตอร์",
+        "answer_zh": "图书馆提供 Wi-Fi。请向前台索取密码。"
+      },
+      {
+        "keywords": [
+          "print",
+          "printing",
+          "photocopy",
+          "copy"
+        ],
+        "answer_en": "Printing and photocopy services may be available. Please ask the reception desk for current prices and availability.",
+        "answer_th": "อาจมีบริการพิมพ์และถ่ายเอกสาร กรุณาสอบถามราคาและความพร้อมที่เคาน์เตอร์ค่ะ",
+        "answer_zh": "可能提供打印和复印服务。请向前台咨询价格和服务情况。"
+      },
+      {
+        "keywords": [
+          "study room",
+          "room booking",
+          "book room",
+          "reserve room"
+        ],
+        "answer_en": "You can book a study room by telling me the date and time. For example: I want to book a study room tomorrow at 2 PM.",
+        "answer_th": "คุณสามารถจองห้องอ่านหนังสือได้โดยแจ้งวันที่และเวลา เช่น ต้องการจองห้องอ่านหนังสือพรุ่งนี้บ่ายสองโมง",
+        "answer_zh": "您可以告诉我日期和时间来预约自习室。例如：我想明天下午两点预约自习室。"
+      }
+    ],
+    "business_rules": [
+      "Help visitors with opening hours, membership information, borrowing rules, Wi-Fi, printing, study room booking, meeting room booking, and librarian appointments.",
+      "For room bookings and librarian appointments, check Google Calendar availability before confirming.",
+      "Customer name and phone are optional.",
+      "If the user asks general library questions, answer clearly and briefly.",
+      "For booking requests, required fields are service, booking_date, and booking_time."
+    ]
+  }
+}
