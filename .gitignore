@@ -1,0 +1,10 @@
+﻿nailbot_env/
+.venv/
+__pycache__/
+*.pyc
+.env
+fix_env.py
+fix_line_client.py
+patch_app.py
+ngrok/
+ngrok.zip
