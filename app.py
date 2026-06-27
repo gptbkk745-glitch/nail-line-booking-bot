@@ -299,8 +299,8 @@ def localized_occupied_reply(language: str, alternatives: list[str]) -> str:
 
 async def check_calendar_availability(start_dt: datetime, duration_minutes: int) -> bool:
     """
-    Check Google Calendar availability.
-    If Google Calendar is not configured, fallback to dummy testing logic.
+    Check real Google Calendar availability.
+    If Google Calendar env is not configured, fallback to dummy test logic.
     """
 
     end_dt = start_dt + timedelta(minutes=duration_minutes)
@@ -311,7 +311,7 @@ async def check_calendar_availability(start_dt: datetime, duration_minutes: int)
             return False
         return True
 
-    service = get_calendar_service()
+    calendar_service = get_calendar_service()
 
     body = {
         "timeMin": start_dt.isoformat(),
@@ -320,7 +320,7 @@ async def check_calendar_availability(start_dt: datetime, duration_minutes: int)
         "items": [{"id": GOOGLE_CALENDAR_ID}],
     }
 
-    result = service.freebusy().query(body=body).execute()
+    result = calendar_service.freebusy().query(body=body).execute()
 
     busy_slots = (
         result
@@ -341,8 +341,8 @@ async def create_calendar_booking(
     line_user_id: str,
 ) -> str:
     """
-    Create booking event in Google Calendar.
-    If Google Calendar is not configured, fallback to dummy logging.
+    Create real Google Calendar event.
+    If Google Calendar env is not configured, fallback to dummy logging.
     """
 
     end_dt = start_dt + timedelta(minutes=duration_minutes)
