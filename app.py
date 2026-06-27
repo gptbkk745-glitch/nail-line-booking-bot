@@ -1,4 +1,5 @@
-﻿import json
+﻿import base64
+import json
 import logging
 import os
 from datetime import datetime, timedelta
@@ -9,6 +10,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from google import genai
 from google.genai import types
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     ApiClient,
@@ -34,6 +37,15 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 BUSINESS_TZ = os.getenv("BUSINESS_TZ", "Asia/Bangkok")
 WORK_START = os.getenv("WORK_START", "10:00")
 WORK_END = os.getenv("WORK_END", "20:00")
+
+GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+GOOGLE_SERVICE_ACCOUNT_B64 = os.getenv("GOOGLE_SERVICE_ACCOUNT_B64", "")
+
+calendar_ready = bool(
+    GOOGLE_CALENDAR_ID
+    and (GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_B64)
+)
 
 TIMEZONE = ZoneInfo(BUSINESS_TZ)
 
@@ -287,14 +299,37 @@ def localized_occupied_reply(language: str, alternatives: list[str]) -> str:
 
 async def check_calendar_availability(start_dt: datetime, duration_minutes: int) -> bool:
     """
-    Dummy Google Calendar availability check.
-    For testing, 14:00 is always occupied.
+    Check Google Calendar availability.
+    If Google Calendar is not configured yet, fallback to dummy testing logic.
     """
 
-    if start_dt.hour == 14:
-        return False
+    end_dt = start_dt + timedelta(minutes=duration_minutes)
 
-    return True
+    if not calendar_ready:
+        logger.warning("Google Calendar not configured. Using dummy availability logic.")
+        if start_dt.hour == 14:
+            return False
+        return True
+
+    service = get_calendar_service()
+
+    body = {
+        "timeMin": start_dt.isoformat(),
+        "timeMax": end_dt.isoformat(),
+        "timeZone": BUSINESS_TZ,
+        "items": [{"id": GOOGLE_CALENDAR_ID}],
+    }
+
+    result = service.freebusy().query(body=body).execute()
+
+    busy_slots = (
+        result
+        .get("calendars", {})
+        .get(GOOGLE_CALENDAR_ID, {})
+        .get("busy", [])
+    )
+
+    return len(busy_slots) == 0
 
 
 async def create_calendar_booking(
@@ -306,23 +341,60 @@ async def create_calendar_booking(
     line_user_id: str,
 ) -> str:
     """
-    Dummy Google Calendar booking creation.
-    Later we will replace this with real Google Calendar API.
+    Create booking event in Google Calendar.
+    If Google Calendar is not configured yet, fallback to dummy logging.
     """
 
     end_dt = start_dt + timedelta(minutes=duration_minutes)
+    service_display = SERVICES[service]["display_name"]
 
-    logger.info(
-        "Dummy booking created: %s to %s, service=%s, customer=%s, phone=%s, user=%s",
-        start_dt,
-        end_dt,
-        service,
-        customer_name,
-        phone,
-        line_user_id,
-    )
+    if not calendar_ready:
+        logger.warning("Google Calendar not configured. Dummy booking created.")
+        logger.info(
+            "Dummy booking created: %s to %s, service=%s, customer=%s, phone=%s, user=%s",
+            start_dt,
+            end_dt,
+            service,
+            customer_name,
+            phone,
+            line_user_id,
+        )
+        return "dummy_calendar_event_id"
 
-    return "dummy_calendar_event_id"
+    calendar_service = get_calendar_service()
+
+    event_body = {
+        "summary": f"Nail Booking - {service_display}",
+        "description": (
+            f"Service: {service_display}
+"
+            f"Customer name: {customer_name or 'Not provided'}
+"
+            f"Phone: {phone or 'Not provided'}
+"
+            f"LINE user ID: {line_user_id}
+"
+            f"Created by AI Receptionist Bot"
+        ),
+        "start": {
+            "dateTime": start_dt.isoformat(),
+            "timeZone": BUSINESS_TZ,
+        },
+        "end": {
+            "dateTime": end_dt.isoformat(),
+            "timeZone": BUSINESS_TZ,
+        },
+    }
+
+    created_event = calendar_service.events().insert(
+        calendarId=GOOGLE_CALENDAR_ID,
+        body=event_body,
+    ).execute()
+
+    event_id = created_event.get("id", "")
+    logger.info("Google Calendar booking created: %s", event_id)
+
+    return event_id
 
 
 async def suggest_alternative_times(start_dt: datetime, duration_minutes: int) -> list[str]:
@@ -404,6 +476,7 @@ async def health_check():
         "working_hours": f"{WORK_START}-{WORK_END}",
         "line_ready": bool(line_ready),
         "gemini_ready": bool(gemini_ready),
+        "calendar_ready": bool(calendar_ready),
     }
 
 
