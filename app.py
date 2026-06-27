@@ -15,8 +15,8 @@ from googleapiclient.discovery import build
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     ApiClient,
-    MessagingApi,
     Configuration,
+    MessagingApi,
     ReplyMessageRequest,
     TextMessage,
 )
@@ -29,10 +29,11 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nail-line-booking-bot")
 
+
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 BUSINESS_TZ = os.getenv("BUSINESS_TZ", "Asia/Bangkok")
 WORK_START = os.getenv("WORK_START", "10:00")
@@ -67,7 +68,9 @@ SERVICES = {
     },
 }
 
+
 app = FastAPI(title="Nail Stall AI Receptionist Bot")
+
 
 line_ready = (
     LINE_CHANNEL_SECRET
@@ -78,6 +81,7 @@ line_ready = (
 
 gemini_ready = GEMINI_API_KEY and GEMINI_API_KEY != "your_gemini_api_key"
 
+
 if line_ready:
     line_config = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
     line_api_client = ApiClient(line_config)
@@ -86,6 +90,7 @@ if line_ready:
 else:
     line_bot_api = None
     line_parser = None
+
 
 if gemini_ready:
     gemini_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -175,6 +180,36 @@ class GeminiBookingResult(BaseModel):
     confidence: float = 0.0
 
 
+GOOGLE_CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+
+def load_google_service_account_info() -> dict:
+    if GOOGLE_SERVICE_ACCOUNT_B64:
+        decoded = base64.b64decode(GOOGLE_SERVICE_ACCOUNT_B64).decode("utf-8")
+        return json.loads(decoded)
+
+    if GOOGLE_SERVICE_ACCOUNT_JSON:
+        return json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+
+    raise RuntimeError("Google Calendar service account credentials not configured.")
+
+
+def get_calendar_service():
+    info = load_google_service_account_info()
+
+    credentials = service_account.Credentials.from_service_account_info(
+        info,
+        scopes=GOOGLE_CALENDAR_SCOPES,
+    )
+
+    return build(
+        "calendar",
+        "v3",
+        credentials=credentials,
+        cache_discovery=False,
+    )
+
+
 def now_thailand() -> datetime:
     return datetime.now(TIMEZONE)
 
@@ -210,7 +245,7 @@ async def analyze_message_with_gemini(user_message: str, line_user_id: str) -> G
         return GeminiBookingResult(
             intent="unknown",
             language="en",
-            reply_message="Gemini API key is not added yet. Please update GEMINI_API_KEY in the .env file.",
+            reply_message="Gemini API key is not added yet. Please update GEMINI_API_KEY.",
             service=None,
             service_display_name=None,
             booking_date=None,
@@ -298,11 +333,6 @@ def localized_occupied_reply(language: str, alternatives: list[str]) -> str:
 
 
 async def check_calendar_availability(start_dt: datetime, duration_minutes: int) -> bool:
-    """
-    Check real Google Calendar availability.
-    If Google Calendar env is not configured, fallback to dummy test logic.
-    """
-
     end_dt = start_dt + timedelta(minutes=duration_minutes)
 
     if not calendar_ready:
@@ -340,11 +370,6 @@ async def create_calendar_booking(
     phone: Optional[str],
     line_user_id: str,
 ) -> str:
-    """
-    Create real Google Calendar event.
-    If Google Calendar env is not configured, fallback to dummy logging.
-    """
-
     end_dt = start_dt + timedelta(minutes=duration_minutes)
     service_display = SERVICES[service]["display_name"]
 
@@ -363,19 +388,17 @@ async def create_calendar_booking(
 
     calendar_service = get_calendar_service()
 
+    event_description = (
+        f"Service: {service_display}\n"
+        f"Customer name: {customer_name or 'Not provided'}\n"
+        f"Phone: {phone or 'Not provided'}\n"
+        f"LINE user ID: {line_user_id}\n"
+        "Created by AI Receptionist Bot"
+    )
+
     event_body = {
         "summary": f"Nail Booking - {service_display}",
-        "description": (
-            f"Service: {service_display}
-"
-            f"Customer name: {customer_name or 'Not provided'}
-"
-            f"Phone: {phone or 'Not provided'}
-"
-            f"LINE user ID: {line_user_id}
-"
-            f"Created by AI Receptionist Bot"
-        ),
+        "description": event_description,
         "start": {
             "dateTime": start_dt.isoformat(),
             "timeZone": BUSINESS_TZ,
@@ -500,7 +523,7 @@ async def line_webhook(request: Request):
     if not line_ready or line_parser is None or line_bot_api is None:
         raise HTTPException(
             status_code=500,
-            detail="LINE credentials are not configured. Please update .env file.",
+            detail="LINE credentials are not configured.",
         )
 
     signature = request.headers.get("X-Line-Signature")
