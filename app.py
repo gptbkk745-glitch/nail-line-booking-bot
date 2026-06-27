@@ -128,6 +128,7 @@ Your tasks:
    - "reschedule_request": user wants to change an appointment.
    - "cancel_request": user wants to cancel.
    - "unknown": unclear.
+   - For cancel_request, extract booking_date and booking_time if the user gives them. Service is optional for cancellation.
 3. Extract booking details if present.
 4. Always respond in the same language as the user.
 5. Do not confirm that an appointment is booked. The Python backend checks Google Calendar first.
@@ -333,6 +334,32 @@ def localized_occupied_reply(language: str, alternatives: list[str]) -> str:
     return f"Sorry, that time is already booked 🙏\nNearby available times: {alt_text}\nWhich time would you prefer?"
 
 
+
+
+def localized_cancel_missing_reply(language: str) -> str:
+    if language == "th":
+        return "ได้ค่ะ กรุณาบอกวันที่และเวลาที่ต้องการยกเลิกการจองด้วยนะคะ"
+    if language == "zh":
+        return "可以的，请告诉我您想取消预约的日期和时间。"
+    return "Sure. Please tell me the booking date and time you want to cancel."
+
+
+def localized_cancel_success_reply(language: str, date_text: str, time_text: str) -> str:
+    if language == "th":
+        return f"ยกเลิกการจองเรียบร้อยแล้วค่ะ ✅\nวันที่: {date_text}\nเวลา: {time_text}"
+    if language == "zh":
+        return f"预约已取消 ✅\n日期：{date_text}\n时间：{time_text}"
+    return f"Your booking has been cancelled ✅\nDate: {date_text}\nTime: {time_text}"
+
+
+def localized_cancel_not_found_reply(language: str) -> str:
+    if language == "th":
+        return "ขออภัยค่ะ ไม่พบการจองของคุณในวันและเวลานี้ กรุณาตรวจสอบวันเวลาอีกครั้งนะคะ"
+    if language == "zh":
+        return "不好意思，没有找到您在这个日期和时间的预约。请再确认一下日期和时间。"
+    return "Sorry, I could not find your booking at that date and time. Please check the date and time again."
+
+
 async def check_calendar_availability(start_dt: datetime, duration_minutes: int) -> bool:
     end_dt = start_dt + timedelta(minutes=duration_minutes)
 
@@ -421,6 +448,72 @@ async def create_calendar_booking(
     return event_id
 
 
+
+
+async def cancel_calendar_booking(start_dt: datetime, line_user_id: str) -> bool:
+    """
+    Cancel a booking from Google Calendar by matching:
+    - same booking start time
+    - same LINE user ID stored in event description
+    """
+
+    if not calendar_ready:
+        logger.warning("Google Calendar not configured. Cannot cancel real booking.")
+        return False
+
+    calendar_service = get_calendar_service()
+
+    day_start = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    events_result = calendar_service.events().list(
+        calendarId=GOOGLE_CALENDAR_ID,
+        timeMin=day_start.isoformat(),
+        timeMax=day_end.isoformat(),
+        singleEvents=True,
+        orderBy="startTime",
+    ).execute()
+
+    target_prefix = start_dt.strftime("%Y-%m-%dT%H:%M")
+
+    for event in events_result.get("items", []):
+        event_start = event.get("start", {}).get("dateTime", "")
+        description = event.get("description", "")
+
+        if event_start.startswith(target_prefix) and line_user_id in description:
+            event_id = event.get("id")
+            calendar_service.events().delete(
+                calendarId=GOOGLE_CALENDAR_ID,
+                eventId=event_id,
+            ).execute()
+
+            logger.info("Google Calendar booking cancelled: %s", event_id)
+            return True
+
+    return False
+
+
+async def process_cancel_request(ai_result: GeminiBookingResult, line_user_id: str) -> str:
+    if not ai_result.booking_date or not ai_result.booking_time:
+        return localized_cancel_missing_reply(ai_result.language)
+
+    try:
+        start_dt = build_start_datetime(ai_result.booking_date, ai_result.booking_time)
+    except ValueError:
+        return localized_cancel_missing_reply(ai_result.language)
+
+    cancelled = await cancel_calendar_booking(start_dt, line_user_id)
+
+    if cancelled:
+        return localized_cancel_success_reply(
+            ai_result.language,
+            start_dt.strftime("%Y-%m-%d"),
+            start_dt.strftime("%H:%M"),
+        )
+
+    return localized_cancel_not_found_reply(ai_result.language)
+
+
 async def suggest_alternative_times(start_dt: datetime, duration_minutes: int) -> list[str]:
     alternatives = []
     candidate = start_dt + timedelta(minutes=30)
@@ -443,6 +536,9 @@ async def process_customer_message(user_message: str, line_user_id: str) -> str:
     ai_result = await analyze_message_with_gemini(user_message, line_user_id)
 
     logger.info("AI result: %s", ai_result.model_dump())
+
+    if ai_result.intent == "cancel_request":
+        return await process_cancel_request(ai_result, line_user_id)
 
     if ai_result.intent != "booking_request":
         return ai_result.reply_message
