@@ -1005,4 +1005,14 @@ async def line_webhook_for_tenant(tenant_slug: str, request: Request):
     return {
         "status": "ok",
         "tenant": tenant_slug,
-    }
+    }\n\n# --- CORS for 3D web frontend ---
+from fastapi.middleware.cors import CORSMiddleware
+
+if not any(getattr(m.cls, "__name__", "") == "CORSMiddleware" for m in app.user_middleware):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
